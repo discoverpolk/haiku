@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<meta http-equiv="Access-Control-Allow-Origin" content="*">
+<title>POETRY ON POLK</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="jquery/jquery-1.6.4.min.js"></script>
+
+
+
+ <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css"
+   integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ=="
+   crossorigin=""/>
+ <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"
+   integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log=="
+   crossorigin=""></script>
+ 
+ <script src="leaflet-fullscreen/Control.FullScreen.min.js"></script>
+ <link rel="stylesheet" href="leaflet-fullscreen/Control.FullScreen.css">
+
+
+
+
+  <!-- Tabletop to access Google spreadsheets - THANK YOU AMAZING HUMANS WHO CREATED THIS!! LOVE LOVE LOVE-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tabletop.js/1.5.1/tabletop.js"></script>
+  
+  <!-- Marker clustering and sidebar -->  
+  <script src="leaflet-markercluster/dist/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="leaflet-markercluster/dist/MarkerCluster.css">
+	    <link rel="stylesheet" href="leaflet-markercluster/dist/MarkerCluster.Default.css">
+<link rel="stylesheet" href="leaflet-sidebar/L.Control.Sidebar.css" />
+    <script src="leaflet-sidebar/L.Control.Sidebar.js"></script>
+	<script src="button/leaflet-button.js"></script>
+
+  <!-- Load Esri Leaflet from CDN -->
+    <script src="https://unpkg.com/esri-leaflet@2.0.8"></script>
+ 
+ <!-- Esri Leaflet Geocoder -->
+    <link rel="stylesheet" href="https://unpkg.com/esri-leaflet-geocoder@2.2.6/dist/esri-leaflet-geocoder.css">
+    <script src="https://unpkg.com/esri-leaflet-geocoder@2.2.6"></script>
+
+  
+  
+ <!-- FontAaaawwwwesome -->  
+<link href="fontawesome/css/all.css" rel="stylesheet">
+ <script src='https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.0.1/leaflet-omnivore.min.js'></script>
+ <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Raleway" />	
+
+
+ <!-- FUSE - thanks, Kiro -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/3.0.4/fuse.min.js"></script>
+	
+<link rel="stylesheet" href="css/dp_style.css" />
+
+
+
+<style>
+		
+</style>
+
+</head>				
+	
+<body>
+
+<div id="directoryBox" style="width:100%; height:250px; display:none;"></div>
+<div id="mapdiv"></div>
+
+<script type="text/javascript">
+
+
+// General note: TABLETOP, I love you. LOVE YOU.
+
+
+var currdate = new Date();
+var currmo = currdate.getMonth()+1;
+
+
+var map = L.map('mapdiv',{
+  maxZoom: 20,
+  fullscreenControl: true,
+  fullscreenControlOptions: {
+    position: 'topleft'
+  }
+} ).setView([37.793165, -122.422057], 17);
+
+var zf = document.getElementsByClassName("leaflet-control-zoom-fullscreen");
+zf[0].innerHTML = "<i class='fa fa-expand fa-2x' style='padding-top:3px;color:#444'>";
+
+
+
+  var info_sidebar = document.createElement('div');
+  info_sidebar.id = "infoSidebar";
+  info_sidebar.class = "sidebar";
+  $('body')[0].appendChild(info_sidebar);
+  
+  infoSidebar = new L.control.sidebar('infoSidebar',{
+      position: 'right'
+  });
+	map.addControl(infoSidebar);
+	infoSidebar.show();
+
+
+cartoBase = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+	maxZoom:20,
+	attribution: 'created by ixd'
+});
+
+
+
+mapboxBase = L.tileLayer('https://api.mapbox.com/styles/v1/ixd-maps/cjyi3ti9l08zy1crm4dyjjcm0/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiaXhkLW1hcHMiLCJhIjoiY2p5aTN0Mzd3MDZkbzNpbnRiMG5uMWJhOSJ9.wV8VsOd5tquU3U-NCnoFQA', {
+	maxZoom:20,
+	attribution: 'iana dikidjieva with mapbox'
+});
+
+googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+	maxZoom: 20,
+    subdomains:['mt0','mt1','mt2','mt3'],
+	attribution: 'uses google satellite'
+});
+
+googleStr = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
+	maxZoom: 20,
+    subdomains:['mt0','mt1','mt2','mt3'],
+	attribution: 'uses google streets'
+});
+
+mapboxBase.addTo(map);
+
+var bases = {"Streets": mapboxBase};
+
+overlayLayers = {}; 
+		<!-- don't forget to add any new layers to the menu! -->		
+grafOverlay={};
+
+/*
+var monthStatViewOn = 0;
+var monthSelectorOn = 0;
+
+var monthStats = {
+	"monthnum":[],
+	"month": ["","January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+	"Z1":[],
+	"Z2":[],
+	"total":[]
+};
+
+
+<!-- the calendar icon -->
+var monthControl = L.Control.extend({
+ 
+  options: {
+    position: 'topleft' 
+  },
+ 
+  onAdd: function (map) {
+    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+ 
+	container.style.backgroundColor = 'white';
+    container.style.width = '30px';
+    container.style.height = '30px';
+//	container.style.backgroundImage = "url(calendar.png)";
+//	container.style.backgroundRepeat = "no-repeat";
+//	container.style.backgroundPosition = "2px 2px";
+
+	container.innerHTML = "<i class='fa fa-calendar-alt fa-2x' style='padding-left:4px;padding-top:3px;color:#444'>";
+
+    container.onclick = function(){
+	
+	  if (monthSelectorOn != 1) {
+		document.getElementById('monthSelector').style.display = 'block';
+		monthSelectorOn = 1;
+	  }
+	
+	  if (monthStatViewOn != 1) {
+ //     map.addControl(new monthStatView());
+	  }
+    }
+
+    return container;
+  },
+ 
+});
+
+var monthStatContent;
+
+var selectorContent = '';
+var monthStatView = L.Control.extend({
+ 
+  options: {
+    position: 'bottomright' 
+  },
+ 
+  onAdd: function (map) {
+    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+ 
+    container.style.backgroundColor = 'white';
+    container.style.width = '150px';
+    container.style.height = 'auto';
+	container.style.padding = '8px';
+	
+	monthStatViewOn = 1;
+ 
+    container.onclick = function(){
+    }
+	
+
+	container.appendChild(setupMonthStats());
+    return container;
+  },
+ 
+});
+
+var monthSelector = L.Control.extend({
+ 
+  options: {
+    position: 'topleft'
+  },
+ 
+  onAdd: function (map) {
+    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+		container.innerHTML = "<i class='fa fa-times-circle fa-lg' style='float:right;color:#027e96; line-height:.5em;' onClick='hideMonthSelector();monthSelectorOn = 0;' ></i><h4 style='margin-top:-3px;color:#666;'>Filters</h4>" ;
+	container.id = 'monthSelector';
+	container.style.display='none';
+    container.style.backgroundColor = 'white';
+    container.style.width = '110px';
+    container.style.height = 'auto';
+	container.style.padding = '10px';
+ 
+    container.onclick = function(){
+      
+    }
+	
+    return container;
+  },
+ 
+});
+	
+
+
+
+map.addControl(new monthControl());
+map.addControl(new monthSelector());
+
+function hideMonthSelector() {
+	document.getElementById('monthSelector').style.display = 'none';
+}
+
+
+function setupMonthSelector(){
+ for (i=0; i<=13; i++) {
+	if (monthStats.total[i] > 0) {
+		document.getElementById('monthSelector').innerHTML += "<input type = 'checkbox' name = 'monthslist' value = '" + monthStats.monthnum[i]+ "' checked onchange = 'filterData()'>" + monthStats.month[i] + "</input><br>";
+	}
+ }
+}
+
+function setupMonthStats() {
+
+	var statsTable = document.createElement("table");
+	statsTable.innerHTML += "<tr><td>Month</td><td>DP</td><td>LP</td><td>All</td>";
+	for (i=3; i<=maxMonth; i++) {
+		statsTable.innerHTML += "<tr><td>" + monthStats.month[i] + "</td><td>" + monthStats.Z1[i] + "</td><td>" + monthStats.Z2[i] + "</td><td>" + monthStats.total[i] + "</td></tr>";
+	
+	}
+
+	return statsTable;
+
+}
+
+*/
+
+function getColor(a) {
+	switch (a) {
+	case 'Zone 1':
+      return '#027e9c';
+	case 'Zone 2': 
+	  return '#FAF13A';
+    default:
+      return '#444';
+	
+	
+	}
+	
+}
+
+/*
+map.on('click', function (e) {
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	
+	var popup = new L.popup({maxWidth:'140'}).setLatLng(e.latlng);
+	addStripped='';
+	var esriGeo = L.esri.Geocoding.reverseGeocode().latlng([lat, lng]).run(function(error, result, response){
+	var codeAddress = '';
+		if (result.address.Addr_type == 'POI') {
+			codeAddress = result.address.LongLabel;
+		}
+		
+		else {
+			codeAddress = result.address.Match_addr;
+		}
+		link='https://docs.google.com/forms/d/e/1FAIpQLSfPYsL--U15vW-8vCUokUtC5o-W3viX1FJadJRkoNa-1zvn0Q/viewform?usp=pp_url&entry.114398630=' + codeAddress + '&entry.1676608357=' + lat + '&entry.380005142='+lng;
+ 		function setPopup() {
+			
+				popupContent = 
+					"<h4><b><a style='text-decoration:none' target='_blank' href='"+ link + "'>ADD AN ISSUE!</a></b></h4>" +
+					"<hr>"+
+					codeAddress;
+				}			
+				setPopup();
+			popup.setContent(popupContent);
+			popup.openOn(map);
+			});
+			
+		});
+
+*/
+
+var count = 0;
+var maxMonth = 0;
+
+
+
+/* function disaggregate(e){
+
+	displayGraf(e);
+	maxMonth = 0;
+	count = 0;
+	
+	for (i=0; i<=12; i++) {
+		monthStats.monthnum.push(i);
+		monthStats.total[i] = 0;
+		monthStats.Z1[i]=0;
+		monthStats.Z2[i]=0;
+	}
+	
+	
+	for (i=0;i<=e.length-1;i++){
+	
+		if (e[i].Month > 0) {
+			p = e[i].Month;
+		
+			monthStats.total[p]=monthStats.total[p]+1;
+			
+			if (e[i].Month > maxMonth) {
+				maxMonth = e[i].Month;
+			}
+			
+			if (e[i].District == 'Zone 1') {
+				monthStats.Z1[p] +=1;
+			}
+
+			if (e[i].District == 'Zone 2') {
+				monthStats.Z2[p] +=1;
+			}			
+			
+			count+=1;
+		
+		}
+	}
+	setupMonthSelector();
+
+
+}
+*/
+
+function style(feature) {
+		
+			return {
+					weight: 6,
+					opacity: .3,
+					color: getColor(feature.properties.name),
+					fillOpacity: 0.1,
+					fillColor: getColor(feature.properties.name),
+				};
+			}
+/* var cbdLayer = new L.geoJson;
+
+$.getJSON("https://discoverpolk.github.io/graffiti/polkcbds.geojson",
+            function(data) {
+	        cbdLayer = L.geoJson(data, {
+				style: style,
+				interactive: false,
+				onEachFeature: function (feature, layer) {
+
+				}
+				
+			});
+			cbdLayer.addTo(map);
+			});
+
+*/
+
+
+
+
+var infoSidebarOn = false;
+var layerControlOn = false;
+var data = [];	
+
+initGraf();
+
+var monthfilters = [];  
+var points = [];
+var alldata;
+
+function loadGraf(data) {
+
+console.log(data);
+	
+//	disaggregate(data);
+	alldata = data;
+	displayGraf(alldata);
+
+}
+
+/*
+function filterData() {
+	var filterdata = [];
+	monthfilters = [];
+	$.each($("input[name='monthslist']:checked"), function(){            
+                monthfilters.push($(this).val());
+            });
+	
+	$.each(monthfilters, function (i,l) {
+	$.each(alldata, function( k, v ) {
+	  if (v.Month == l) {
+		filterdata.push(alldata[k]);
+	  };
+	});
+	});
+	displayGraf(filterdata);
+
+}
+*/
+
+var graffiti = new L.markerClusterGroup({spiderfyDistanceMultiplier:2});
+
+function cleanlink(e) {
+
+var len = e.length;
+var pos = e.indexOf("=");
+var id = [];
+for (i=pos; i<len; i++) {
+ id+=e[i];
+}
+
+var cleanlink = "https://drive.google.com/thumbnail?id" + id + "&sz=w500";
+return cleanlink;
+
+}
+
+function haikuClean(a){
+ var cleaned = a.replace(/[/]/g, '<br>');
+ return cleaned;
+
+}
+
+
+function displayGraf(data) {
+
+	graffiti.clearLayers();
+
+	for (i=0;i<=data.length-1;i++) {
+	
+		var haiku = haikuClean(data[i].Haiku);
+		
+		if ((data[i].Lat !='#N/A') && (data[i].Lat !='#REF!') && (data[i].Lat != '')) {
+		
+			var lat = data[i].Lat;
+			var lng = data[i].Lng;
+			var latlng = [lat,lng];
+
+//			var atype = data[i].a_type;
+			grafMarker = L.CircleMarker.extend({
+				options:{
+					data: []
+				}
+			});
+			
+			if ((latlng != null)&&(lat != 'Loading...') && (lat != '#N/A')) {
+			var marker = new grafMarker(latlng, {
+				radius: 10,
+				weight:5,
+				color:"#000",
+				opacity:.7,
+				fillOpacity: 0.7,
+				fillColor:"#00FA9A",
+				data: data[i]
+				});
+				
+
+			graffiti.addLayer(marker);
+			
+
+			var content = 
+					"<b>"+ haiku + "</b><br>" + data[i].Location ;
+					
+/*	
+			var pod = document.createElement('div');
+			pod.className = 'assetPodSmall';
+			var beforelink = data[i].Before;
+			var afterlink = data[i].After;
+			
+			var beforeclean = cleanlink(beforelink);
+			var afterclean = cleanlink(afterlink);
+
+
+	
+			var beforeImg = document.createElement("img");
+			var afterImg = document.createElement("img");
+			
+			
+			beforeImg.className = 'assetPicSmall'; 
+			beforeImg.src = beforeclean;
+			afterImg.className = 'assetPicSmall'; 
+			afterImg.src = afterclean;
+			
+			pod.appendChild(beforeImg);
+			pod.appendChild(afterImg);
+			
+			document.getElementById("directoryBox").appendChild(pod);
+			
+*/			
+
+
+			graffiti.on('clusterclick', function (a) {
+				a.layer.spiderify;
+			});
+			marker.bindTooltip(content,{'maxWidth':'300px'});
+			
+
+			if (map.hasLayer(googleStr)){
+				googleStr.redraw();
+			}
+
+
+			marker.on("click", function(e) {
+				L.DomEvent.stop(e);
+				displayInfo(e);			
+			})
+			
+			marker.on("mouseover", function(e) {
+				L.DomEvent.stop(e);
+				e.target.setStyle({fillColor: '#ff00c1'});
+				displayInfo(e);	
+				
+			})
+
+			marker.on("mouseout", function(e) {
+				L.DomEvent.stop(e);
+				e.target.setStyle({fillColor: '#00FA9A'});
+				
+			})
+
+			graffiti.addTo(map);
+			}
+		}				
+				
+	overlayLayers["graffiti"] = graffiti;
+	}
+if (layerControlOn = false){
+	L.control.layers(bases, overlayLayers, {position:'topleft'}).addTo(map);	
+	layerControlOn = true;
+}
+
+
+
+}
+
+
+		
+function initGraf() {
+
+Tabletop.init({
+    	key: "https://docs.google.com/spreadsheets/d/1WC9yn8CTcxn2FVa6HbXu0BZ4iavX5LR0V27eIGCZGu0/edit?usp=sharing",
+    	callback: loadGraf,
+    	simpleSheet: true,
+    	debug: false
+    });
+	
+
+	
+}			
+			
+
+
+
+
+
+
+function displayInfo (a) {
+
+
+		var info = a.target.options.data;
+		var photolink = cleanlink(info.Photo);
+		var haiku = haikuClean(info.Haiku);
+
+		
+		var pic = document.createElement("img");
+
+		
+		 pic.className = 'imgdisplay'; 
+		pic.src = photolink;
+
+		var all = 
+		"<div>" +
+		"<b>" + info.Location + "</b>" + " / " + 
+		info.Address + "<br>" +
+		"<hr>" + 
+		"</div>"+ 
+		"<i class='fa fa-quote-left fa-3x' style='float:left;height:120px;padding-top:15px;padding-right:15px;'></i>" +
+		"<div style = 'padding:20px;font-size:110%; color:'#444'>" +
+		"<h4 style='margin-top:-10px;letter-spacing:100%'>" + haiku + "</h4>" + 
+		"</div>";
+
+		var deets = document.createElement("div");
+		deets.innerHTML = all;
+		deets.style = "width:90%; float:left; z-index:999";
+//		deets.appendChild(beforeText);
+		deets.appendChild(pic);
+//		deets.appendChild(afterText);
+
+
+			var infoDisplay = '';					
+				infoSidebar.setContent(infoDisplay);
+				infoSidebar._contentContainer.appendChild(deets);
+
+
+
+				if (infoSidebarOn == false) {
+					infoSidebar.show();
+					infoSidebarOn = true;
+				}
+		
+
+}
+			
+
+	
+</script> 
+  
+
+</body>
+</html>
+
