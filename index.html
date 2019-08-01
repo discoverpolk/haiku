@@ -466,7 +466,7 @@ function getLatLng(b) {
 		}
 		
 		else {
-			l = [37.793165, -122.422057];
+			l = [ 37.795015, -122.421748];
 		}
 		return l;
 
@@ -514,7 +514,7 @@ function displayGraf(data) {
 			corresp.push(data[i].Index);
 
 			var content = 
-					"<b>"+ haiku + "</b><br>" + data[i].Location ;
+					"<b>"+ haiku + "</b>";
 					
 
 
@@ -607,7 +607,7 @@ function displayInfo (a) {
 			
 			if (a.Index === corresp[i]) {
 				indexer = i;
-				layerIndex = i;	
+				layerIndex = i;
 			}
 			
 		}
@@ -637,11 +637,11 @@ function displayInfo (a) {
 		"<i class='fa fa-quote-left fa-3x' style='float:left;height:200px;padding-top:15px;padding-right:15px;'></i>" +
 		"<div style = 'padding:20px;color:'#444'>" +
 		"<h4 style='margin-top:-10px;letter-spacing:100%'>" + haiku + "</h4>" + 
-		"<hr>" +
+		"<br>" +
 		"<b>" + info.Location + "</b>" + " " + 
 		info.Address + "<br>" + 
-		"<hr>" +  
-		info.Categories + 
+		"<br>" +  
+//		info.Categories + 
 		"</div>";
 
 		var deets = document.createElement("div");
@@ -680,6 +680,8 @@ function displayInfo (a) {
 
 </body>
 </html>
+
+
 
 
 
