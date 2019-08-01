@@ -77,7 +77,7 @@ var currmo = currdate.getMonth()+1;
 
 
 var map = L.map('mapdiv',{
-  maxZoom: 20,
+  maxZoom: 16,
   fullscreenControl: true,
   fullscreenControlOptions: {
     position: 'topleft'
@@ -96,13 +96,14 @@ zf[0].innerHTML = "<i class='fa fa-expand fa-2x' style='padding-top:3px;color:#4
   
   infoSidebar = new L.control.sidebar('infoSidebar',{
       position: 'right'
+	  
   });
 	map.addControl(infoSidebar);
 	infoSidebar.show();
 
 
 cartoBase = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
-	maxZoom:20,
+	maxZoom:16,
 	attribution: 'created by ixd'
 });
 
@@ -407,8 +408,6 @@ var alldata;
 
 function loadGraf(data) {
 
-console.log(data);
-	
 //	disaggregate(data);
 	alldata = data;
 	displayGraf(alldata);
@@ -435,7 +434,7 @@ function filterData() {
 }
 */
 
-var graffiti = new L.markerClusterGroup({spiderfyDistanceMultiplier:2});
+var graffiti = new L.markerClusterGroup({spiderfyDistanceMultiplier:2, spiderfyOnMaxZoom:true, singleMarkerMode: true, disableClusteringAtZoom:15});
 
 function cleanlink(e) {
 
@@ -458,7 +457,35 @@ function haikuClean(a){
 }
 
 
+
+function getLatLng(b) {
+		var l = [];
+		if ((b.Lat !='#N/A') && (b.Lat !='#REF!') && (b.Lat != '')) {
+		
+			l = [b.Lat,b.Lng];
+		}
+		
+		else {
+			l = [37.793165, -122.422057];
+		}
+		return l;
+
+}
+
+function scrubDots(){
+		graffiti.eachLayer(function(layer){
+			layer.setStyle({fillColor: '#00FA9A'});
+			layer.closeTooltip();
+		});
+
+}
+
+var	layerindex = [];
+var corresp = [];
+
 function displayGraf(data) {
+
+
 
 	graffiti.clearLayers();
 
@@ -466,69 +493,40 @@ function displayGraf(data) {
 	
 		var haiku = haikuClean(data[i].Haiku);
 		
-		if ((data[i].Lat !='#N/A') && (data[i].Lat !='#REF!') && (data[i].Lat != '')) {
-		
-			var lat = data[i].Lat;
-			var lng = data[i].Lng;
-			var latlng = [lat,lng];
-
-//			var atype = data[i].a_type;
-			grafMarker = L.CircleMarker.extend({
+		grafMarker = L.CircleMarker.extend({
 				options:{
 					data: []
 				}
 			});
-			
-			if ((latlng != null)&&(lat != 'Loading...') && (lat != '#N/A')) {
-			var marker = new grafMarker(latlng, {
+	
+			var marker = new grafMarker(getLatLng(data[i]), {
 				radius: 10,
 				weight:5,
 				color:"#000",
 				opacity:.7,
-				fillOpacity: 0.7,
+				fillOpacity: 1,
 				fillColor:"#00FA9A",
-				data: data[i]
+				data: data[i],
 				});
-				
-
-			graffiti.addLayer(marker);
 			
+			graffiti.addLayer(marker);
+			layerindex[i] = marker._leaflet_id;
+			corresp.push(data[i].Index);
 
 			var content = 
 					"<b>"+ haiku + "</b><br>" + data[i].Location ;
 					
-/*	
-			var pod = document.createElement('div');
-			pod.className = 'assetPodSmall';
-			var beforelink = data[i].Before;
-			var afterlink = data[i].After;
-			
-			var beforeclean = cleanlink(beforelink);
-			var afterclean = cleanlink(afterlink);
-
-
-	
-			var beforeImg = document.createElement("img");
-			var afterImg = document.createElement("img");
-			
-			
-			beforeImg.className = 'assetPicSmall'; 
-			beforeImg.src = beforeclean;
-			afterImg.className = 'assetPicSmall'; 
-			afterImg.src = afterclean;
-			
-			pod.appendChild(beforeImg);
-			pod.appendChild(afterImg);
-			
-			document.getElementById("directoryBox").appendChild(pod);
-			
-*/			
 
 
 			graffiti.on('clusterclick', function (a) {
 				a.layer.spiderify;
 			});
-			marker.bindTooltip(content,{'maxWidth':'300px'});
+			
+			graffiti.on('clustermouseover', function (a) {
+				a.layer.spiderify;
+			});
+			
+			marker.bindTooltip(content,{'maxWidth':'300px', direction:'left'});
 			
 
 			if (map.hasLayer(googleStr)){
@@ -537,14 +535,16 @@ function displayGraf(data) {
 
 
 			marker.on("click", function(e) {
+
 				L.DomEvent.stop(e);
-				displayInfo(e);			
+				displayInfo(e.target.options.data);			
 			})
 			
 			marker.on("mouseover", function(e) {
+				scrubDots();
 				L.DomEvent.stop(e);
 				e.target.setStyle({fillColor: '#ff00c1'});
-				displayInfo(e);	
+				displayInfo(e.target.options.data);	
 				
 			})
 
@@ -555,16 +555,18 @@ function displayGraf(data) {
 			})
 
 			graffiti.addTo(map);
-			}
-		}				
-				
+			
+		}	
+
+	displayInfo(graffiti._featureGroup._layers[layerindex[1]].options.data);
 	overlayLayers["graffiti"] = graffiti;
-	}
+	
+	
+	
 if (layerControlOn = false){
 	L.control.layers(bases, overlayLayers, {position:'topleft'}).addTo(map);	
 	layerControlOn = true;
 }
-
 
 
 }
@@ -592,40 +594,73 @@ Tabletop.init({
 
 function displayInfo (a) {
 
-
-		var info = a.target.options.data;
+		scrubDots();
+	
+		var info = a;
 		var photolink = cleanlink(info.Photo);
 		var haiku = haikuClean(info.Haiku);
-
 		
+		var indexer = 0;
+		var layerIndex = 0;
+		
+		for (i=0; i<=corresp.length-1; i++) {
+			
+			if (a.Index === corresp[i]) {
+				indexer = i;
+				layerIndex = i;
+				console.log(indexer, layerIndex);	
+			}
+			
+		}
+			graffiti.getLayer(layerindex[layerIndex]).setStyle({fillColor: '#ff00c1'});
+			graffiti.getLayer(layerindex[layerIndex]).bringToFront();
+			graffiti.getLayer(layerindex[layerIndex]).openTooltip();
+			
+					
 		var pic = document.createElement("img");
-
-		
-		 pic.className = 'imgdisplay'; 
+		pic.className = 'imgdisplay'; 
 		pic.src = photolink;
 
-		var all = 
-		"<div>" +
-		"<b>" + info.Location + "</b>" + " / " + 
-		info.Address + "<br>" +
-		"<hr>" + 
-		"</div>"+ 
-		"<i class='fa fa-quote-left fa-3x' style='float:left;height:120px;padding-top:15px;padding-right:15px;'></i>" +
-		"<div style = 'padding:20px;font-size:110%; color:'#444'>" +
+
+		var next = document.createElement("div");
+		var prev = document.createElement("div");
+		prev.className = "previous";
+		next.className = "next";
+		
+		prev.innerHTML = "<i class='fa fa-angle-left fa-3x' ></i>";
+		next.innerHTML = "<i class='fa fa-angle-right fa-3x' ></i>";
+		
+		next.onclick = function () {displayInfo(graffiti.getLayer(layerindex[layerIndex+1]).options.data);}
+		prev.onclick = function () {displayInfo(graffiti.getLayer(layerindex[layerIndex-1]).options.data);}
+
+		var all = document.createElement("div");
+		all.innerHTML = 
+		"<i class='fa fa-quote-left fa-3x' style='float:left;height:200px;padding-top:15px;padding-right:15px;'></i>" +
+		"<div style = 'padding:20px;color:'#444'>" +
 		"<h4 style='margin-top:-10px;letter-spacing:100%'>" + haiku + "</h4>" + 
+		"<hr>" +
+		"<b>" + info.Location + "</b>" + " " + 
+		info.Address + "<br>" + 
+		"<hr>" +  
+		info.Categories + 
 		"</div>";
 
 		var deets = document.createElement("div");
-		deets.innerHTML = all;
-		deets.style = "width:90%; float:left; z-index:999";
-//		deets.appendChild(beforeText);
+
+		deets.style = "width:100%; float:left; z-index:999";
 		deets.appendChild(pic);
+		deets.appendChild(all);
+
 //		deets.appendChild(afterText);
+
 
 
 			var infoDisplay = '';					
 				infoSidebar.setContent(infoDisplay);
 				infoSidebar._contentContainer.appendChild(deets);
+				infoSidebar._contentContainer.appendChild(prev);
+				infoSidebar._contentContainer.appendChild(next);
+				
 
 
 
@@ -633,6 +668,8 @@ function displayInfo (a) {
 					infoSidebar.show();
 					infoSidebarOn = true;
 				}
+		
+
 		
 
 }
@@ -644,4 +681,6 @@ function displayInfo (a) {
 
 </body>
 </html>
+
+
 
