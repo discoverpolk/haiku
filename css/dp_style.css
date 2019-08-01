@@ -1,4 +1,5 @@
 
+
 html {height:100%;}
 @font-face {
     font-family: 'Raleway';
@@ -83,6 +84,17 @@ height:auto !important;
 
 .topnav .icon {
   display: none;
+}
+
+.bottombar {
+	position: absolute;
+	bottom:0;
+	left: 0;
+	right:0;
+	width:100%;
+	z-index:999;
+	background-color: #ffffff;
+	opacity:0.5;
 }
 
 @media screen and (max-width: 670px) {
@@ -334,5 +346,6 @@ padding-right:10px;
 } 
   
 }
+
 
 
