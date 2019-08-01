@@ -38,8 +38,8 @@ td {border: solid 1px #eee; padding:5px;}
 height:auto !important;
 }
 
-.previous {float:left;border:solid 1px #ccc; border-radius:8px; padding:10px;z-index:999;position:absolute; bottom:10px; left:10px;}
-.next{float:right;border:solid 1px #ccc; border-radius:8px; padding:10px;z-index:999;position:absolute; bottom:10px;right:10px;}
+.previous {float:left;border:solid 1px #ccc; border-radius:8px; padding:10px;z-index:999;position:absolute; bottom:10px; left:10px;background-color:#ffffff;}
+.next{float:right;border:solid 1px #ccc; border-radius:8px; padding:10px;z-index:999;position:absolute; bottom:10px;right:10px;background-color:#ffffff}
 
 .imgcontain {
 
@@ -334,4 +334,5 @@ padding-right:10px;
 } 
   
 }
+
 
